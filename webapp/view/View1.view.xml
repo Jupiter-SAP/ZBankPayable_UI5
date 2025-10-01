@@ -1,0 +1,144 @@
+<mvc:View
+    controllerName="zzbankpayable.controller.View1"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:smartFilterBar="sap.ui.comp.smartfilterbar"
+    xmlns:smartTable="sap.ui.comp.smarttable"
+    xmlns:l="sap.ui.layout"
+    xmlns:core="sap.ui.core"
+    xmlns:u="sap.ui.unified"
+    xmlns:table="sap.ui.table"
+    xmlns:app="http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1"
+    height="100%"
+>
+    <VBox
+        id="mainVBox"
+        fitContainer="true"
+        height="100%"
+    >
+        <smartFilterBar:SmartFilterBar
+            id="sfbBankPayable"
+            entitySet="ZC_BANKPAYABLE"
+            persistencyKey="SmartFilter_BankPayable"
+            useDateRangeType="true"
+        >
+            <smartFilterBar:controlConfiguration>
+                <!-- <smartFilterBar:ControlConfiguration
+                    id="_IDGenControlConfiguration2"
+                    key="Supplier"
+                    visibleInAdvancedArea="true"
+                /> -->
+                <!-- <smartFilterBar:ControlConfiguration
+                    id="_IDGenControlConfiguration6"
+                    key="Paymentstat"
+                    visibleInAdvancedArea="true"
+                /> -->
+                <!-- <smartFilterBar:ControlConfiguration
+                    id="_IDGenControlConfiguration5"
+                    key="Glaccount"
+                    visibleInAdvancedArea="true"
+                /> -->
+                <!-- <smartFilterBar:ControlConfiguration
+                    id="_IDGenControlConfiguration7"
+                    key="Postingdate"
+                    visibleInAdvancedArea="true"
+                /> -->
+            </smartFilterBar:controlConfiguration>
+        </smartFilterBar:SmartFilterBar>
+        <!-- Smart Table (ResponsiveTable) -->
+        <smartTable:SmartTable
+            id="stBankPayable"
+            entitySet="ZC_BANKPAYABLE"
+            smartFilterId="sfbBankPayable"
+            header="Bank Payable"
+            useVariantManagement="false"
+            useTablePersonalisation="true"
+            persistencyKey="SmartTable_BankPayable"
+            enableAutoColumnWidth="true"
+            enableAutoBinding="true"
+            width="100%"
+            enableExport="true"
+            editTogglable="false"
+            beforeExport=".onBeforeExport"
+            height="100%"
+            showRowCount="true"
+            ignoredFields="__metadata"
+        >
+           
+            <smartTable:customToolbar>
+                <OverflowToolbar id="_IDGenOverflowToolbar">
+                    <ToolbarSpacer id="_IDGenToolbarSpacer" />
+                    <!-- <Button
+                        id="_IDGenButton2"
+                        text="Display"
+                        press="navigatePage"
+                    /> -->
+
+                    <Button
+                        id="_IDGenButton31"
+                        text="Print"
+                        press=".onPrint"
+                    />
+
+                    <Button
+                        id="_IDGenButton32"
+                        text="Reprint"
+                        enabled="{= ${ViewModel>/enable} === true}"
+                        press=".onReprint"
+                    />
+
+                    <Button
+                        id="_IDGenButton3"
+                        text="Approve"
+                        press=".onApprove"
+                    />
+                    <u:FileUploader
+                        id="fileUploader"
+                        name="uploadFile"
+                        width="250px"
+                        placeholder="Choose a file..."
+                        uploadUrl="/sap/opu/odata/sap/ZC_BANKPAYABLE_SRV/FileUploadSet"
+                        change=".onFileChange"
+                        uploadComplete=".onUploadComplete"
+                        fileType="csv,xlsx"
+                        tooltip="Upload supporting document"
+                    />
+                    <Button
+                        id="_IDGenButton"
+                        text="Upload"
+                        icon="sap-icon://upload"
+                        press=".onUploadPress"
+                    />
+                    <!-- <Button id="_IDGenButton1" text="DELETE" icon="sap-icon://DELETE" press=".ondeletePress" /> -->
+                </OverflowToolbar>
+            </smartTable:customToolbar>
+            <table:Table
+                id="_IDGenTable"
+                enableSelectAll="true"
+                selectionMode="MultiToggle"
+                rowSelectionChange="onSelectionChange"
+            />
+                <!-- <table:columns>
+                    <table:Column
+                        id="colStatus"
+                        width="120px"
+                    >
+                    <table:template>
+                        <ObjectStatus id="_IDGenObjectStatus"
+                            text="{Isapproved}"
+                            state="{
+                            path: 'Isapproved',
+                            formatter: '.formatStatusState'
+                        }"
+                            icon="{
+                            path: 'Isapproved',
+                            formatter: '.formatStatusIcon'
+                        }"
+                    />
+                    </table:template>
+                </table:Column>
+            </table:columns>
+        </table:Table>  -->
+        </smartTable:SmartTable>
+    </VBox>
+</mvc:View>
