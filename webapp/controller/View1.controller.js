@@ -19,42 +19,95 @@ sap.ui.define([
 
             });
 
-            this.oModel = new JSONModel({
-                enable: false
+            this.oModel = new sap.ui.model.json.JSONModel({
+                printEnable: false,
+                reprintEnable: false,
+                approveEnable : true,
+                holdEnable : true,
+                rejectEnable : true
             });
 
             this.getView().setModel(this.oModel, "ViewModel");
 
         },
 
-        onSelectionChange: function () {
+        // onSelectionChange: function () {
 
+        //     const oSmartTable = this.byId("stBankPayable");
+        //     const oTable = oSmartTable.getTable();
+
+        //     var aSelectedItems = oTable.getSelectedIndices().map(function (iIndex) {
+        //         var oContext = oTable.getContextByIndex(iIndex);
+        //         if (!oContext) return null;
+
+        //         var row = oContext.getObject();
+
+        //         return {
+        //             Accountingdocument: row.Accountingdocument || "",
+        //             Fiscalyear: row.Fiscalyear || "",
+        //             Companycode: row.Companycode || "",
+        //             Isapproved: row.Isapproved || ""
+        //         };
+        //     }).filter(Boolean);
+
+        //     var bEnable = false;
+
+        //     if (aSelectedItems.length > 0 && aSelectedItems[0].Isapproved === "Printed") {
+        //         bEnable = true;
+        //     }
+
+        //     this.getView().getModel("ViewModel").setProperty("/enable", bEnable);
+
+        // },
+
+        onSelectionChange: function () {
             const oSmartTable = this.byId("stBankPayable");
             const oTable = oSmartTable.getTable();
 
             var aSelectedItems = oTable.getSelectedIndices().map(function (iIndex) {
                 var oContext = oTable.getContextByIndex(iIndex);
-                if (!oContext) return null;
-
-                var row = oContext.getObject();
-
-                return {
-                    Accountingdocument: row.Accountingdocument || "",
-                    Fiscalyear: row.Fiscalyear || "",
-                    Companycode: row.Companycode || "",
-                    Isapproved: row.Isapproved || ""
-                };
+                return oContext ? oContext.getObject() : null;
             }).filter(Boolean);
 
-            var bEnable = false;
+            let printEnable = false;
+            let reprintEnable = false;
+            let approveEnable = true;
+            let holdEnable = true;
+            let rejectEnable = true;
 
-            if (aSelectedItems.length > 0 && aSelectedItems[0].Isapproved === "Printed") {
-                bEnable = true;
+            if (aSelectedItems.length > 0) {
+                const status = aSelectedItems[0].Isapproved;
+
+                if ( status === "Approved") {
+                    // First time → Print active
+                    printEnable = true;
+                    holdEnable = false;
+                    rejectEnable = false;
+                }
+                else if (status === "Printed" || status === "Reprinted") {
+                    // Already printed → Reprint active
+                    reprintEnable = true;
+                    approveEnable = false;
+                    holdEnable = false;
+                    rejectEnable = false;                    
+                }
+
+                // else if(status === "Rejected"){
+                //     approveEnable = false;
+                //     holdEnable = false;
+                // }
             }
 
-            this.getView().getModel("ViewModel").setProperty("/enable", bEnable);
+            const oVM = this.getView().getModel("ViewModel");
+
+            oVM.setProperty("/printEnable", printEnable);
+            oVM.setProperty("/reprintEnable", reprintEnable);
+            oVM.setProperty("/approveEnable", approveEnable);
+            oVM.setProperty("/holdEnable", holdEnable);
+            oVM.setProperty("/rejectEnable", rejectEnable);
 
         },
+
 
         onFileChange(oEvent) {
             var oFileUploader = oEvent.getSource();
@@ -107,7 +160,7 @@ sap.ui.define([
                     return;
                 }
 
-                if (aSelectedItems[i].isApproved === 'Printed') {
+                if (aSelectedItems[i].isApproved === 'Printed' || aSelectedItems[i].isApproved === 'Reprinted') {
                     sap.m.MessageBox.error(doc + " is already printed");
                     oBusyDialog.close();
                     return;
@@ -125,7 +178,7 @@ sap.ui.define([
             let fiscalYear = aSelectedItems[0].Fiscalyear;
             let status = aSelectedItems[0].isApproved;
 
-            var url1 = "/sap/bc/http/sap/ZHTTP_CRYSTALREPORT?";
+            var url1 = "/sap/bc/http/sap/ZHTTP_CRYSTAL_REPORT_NEW?";
             var url2 = "&companycode=" + companyCode;
             var url3 = "&documentno=" + document;
             var url4 = "&fiscalyear=" + fiscalYear;
@@ -164,13 +217,15 @@ sap.ui.define([
                     } else {
                         this._PDFViewer.setSource(_pdfurl);
                     }
-
+                    const oVM = this.getView().getModel("ViewModel");
+                    oVM.setProperty("/printEnable", false);
+                    oVM.setProperty("/reprintEnable", true);
                     oBusyDialog.close();
                     this._PDFViewer.open();
 
                 }.bind(this),
                 error: function () {
-                    MessageBox.show("Something went wrong");
+                    sap.m.MessageBox.show("Something went wrong");
                     oBusyDialog.close();
                 }
             });
@@ -237,7 +292,7 @@ sap.ui.define([
             let fiscalYear = aSelectedItems[0].Fiscalyear;
             let status = aSelectedItems[0].isApproved;
 
-            var url1 = "/sap/bc/http/sap/ZHTTP_CRYSTALREPORT?";
+            var url1 = "/sap/bc/http/sap/ZHTTP_CRYSTAL_REPORT_NEW?";
             var url2 = "&companycode=" + companyCode;
             var url3 = "&documentno=" + document;
             var url4 = "&fiscalyear=" + fiscalYear;
@@ -275,13 +330,17 @@ sap.ui.define([
                         this._PDFViewer.setSource(_pdfurl);
                     }
 
+                    const oVM = this.getView().getModel("ViewModel");
+                    oVM.setProperty("/printEnable", false);
+                    oVM.setProperty("/reprintEnable", true);
+
                     oBusyDialog.close();
                     this._PDFViewer.open();
 
 
                 }.bind(this),
                 error: function () {
-                    MessageBox.show("Something went wrong");
+                    sap.m.MessageBox.show("Something went wrong");
                     oBusyDialog.close();
                 }
             });
@@ -381,6 +440,91 @@ sap.ui.define([
                 }
             });
         },
+
+        onReject: function () {
+            const oSmartTable = this.byId("stBankPayable");
+            const oTable = oSmartTable.getTable();
+
+            var aSelectedItems = oTable.getSelectedIndices().map(function (iIndex) {
+                var oContext = oTable.getContextByIndex(iIndex);
+                if (!oContext) return null;
+
+                var row = oContext.getObject();
+                return {
+                    Accountingdocument: row.Accountingdocument || "",
+                    Fiscalyear: row.Fiscalyear || "",
+                    Companycode: row.Companycode || "",
+                };
+            }).filter(Boolean);
+
+            if (!aSelectedItems || aSelectedItems.length === 0) {
+                sap.m.MessageToast.show("Please select at least one row to reject.");
+                return;
+            }
+
+            $.ajax({
+                url: "/sap/bc/http/sap/ZHTTP_REJECT_HOLD",
+                method: "PUT",
+                data: JSON.stringify(aSelectedItems),
+                success: function (response) {
+                    if (response.includes("Already")) {
+                        sap.m.MessageBox.error(response)
+                    }
+                    else {
+                        sap.m.MessageToast.show(response);
+                        oSmartTable.rebindTable();
+                    }
+
+                },
+                error: function (error) {
+                    sap.m.MessageToast.show("Error in reject", error);
+                    oSmartTable.rebindTable();
+                }
+            });
+        },
+
+        onHold: function () {
+            const oSmartTable = this.byId("stBankPayable");
+            const oTable = oSmartTable.getTable();
+
+            var aSelectedItems = oTable.getSelectedIndices().map(function (iIndex) {
+                var oContext = oTable.getContextByIndex(iIndex);
+                if (!oContext) return null;
+
+                var row = oContext.getObject();
+                return {
+                    Accountingdocument: row.Accountingdocument || "",
+                    Fiscalyear: row.Fiscalyear || "",
+                    Companycode: row.Companycode || "",
+                };
+            }).filter(Boolean);
+
+            if (!aSelectedItems || aSelectedItems.length === 0) {
+                sap.m.MessageToast.show("Please select at least one row to hold.");
+                return;
+            }
+
+            $.ajax({
+                url: "/sap/bc/http/sap/ZHTTP_REJECT_HOLD",
+                method: "POST",
+                data: JSON.stringify(aSelectedItems),
+                success: function (response) {
+                    if (response.includes("Already")) {
+                        sap.m.MessageBox.error(response)
+                    }
+                    else {
+                        sap.m.MessageToast.show(response);
+                        oSmartTable.rebindTable();
+                    }
+
+                },
+                error: function (error) {
+                    sap.m.MessageToast.show("Error in hold", error);
+                    oSmartTable.rebindTable();
+                }
+            });
+        },
+
 
         onUploadPress() {
             if (!this._file) {

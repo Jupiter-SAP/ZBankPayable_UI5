@@ -21,6 +21,6 @@ builder:
           name: ZZBANKPAYABLE
           description: Bank Payable Deployment
           package: ZBANK_PAYABLE
-          transport: TJYK900746
+          transport: TJYK901173
         exclude:
           - /test/

@@ -77,20 +77,34 @@
                     <Button
                         id="_IDGenButton31"
                         text="Print"
+                        enabled="{ViewModel>/printEnable}"
                         press=".onPrint"
                     />
 
                     <Button
                         id="_IDGenButton32"
                         text="Reprint"
-                        enabled="{= ${ViewModel>/enable} === true}"
+                        enabled="{ViewModel>/reprintEnable}"
                         press=".onReprint"
                     />
 
                     <Button
                         id="_IDGenButton3"
                         text="Approve"
+                        enabled="{ViewModel>/approveEnable}"
                         press=".onApprove"
+                    />
+                    <Button
+                        id="_IDGenButton2"
+                        text="Reject"
+                        enabled="{ViewModel>/rejectEnable}"
+                        press=".onReject"
+                    />
+                    <Button
+                        id="_IDGenButton4"
+                        text="Hold"
+                        enabled="{ViewModel>/holdEnable}"
+                        press=".onHold"
                     />
                     <u:FileUploader
                         id="fileUploader"
