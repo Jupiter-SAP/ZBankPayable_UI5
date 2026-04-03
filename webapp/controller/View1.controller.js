@@ -2,6 +2,7 @@ sap.ui.define([
     "sap/ui/core/mvc/Controller",
     "sap/ui/model/json/JSONModel",
     "sap/m/MessageToast",
+
     "sap/ui/thirdparty/jquery"
 ], (Controller, JSONModel, MessageToast, jQuery) => {
     "use strict";
@@ -22,9 +23,12 @@ sap.ui.define([
             this.oModel = new sap.ui.model.json.JSONModel({
                 printEnable: false,
                 reprintEnable: false,
-                approveEnable : true,
-                holdEnable : true,
-                rejectEnable : true
+                approveEnable: true,
+                holdEnable: true,
+                rejectEnable: true,
+                sendEnable: false,
+                inquiryEnable: false,
+                NeftinquiryEnable: false
             });
 
             this.getView().setModel(this.oModel, "ViewModel");
@@ -74,11 +78,29 @@ sap.ui.define([
             let approveEnable = true;
             let holdEnable = true;
             let rejectEnable = true;
+            let sendEnable = false;
+            let inquiryEnable = false;
+            let NeftinquiryEnable = false;
+
+
 
             if (aSelectedItems.length > 0) {
+                const hasSuccess = aSelectedItems.some(
+                    item => (item?.Paymentstat || ""
+                    ).toUpperCase() === "SUCCESS");
+                sendEnable = !hasSuccess;
+
+                inquiryEnable = aSelectedItems.some(item =>
+                    item.Paymentstat && item.Paymentstat.toLowerCase().includes("pending")
+                );
+
+                NeftinquiryEnable = aSelectedItems.some(item =>
+                    item.Paymentmethod && item.Paymentmethod.toLowerCase().includes("NEFT")
+                );
+
                 const status = aSelectedItems[0].Isapproved;
 
-                if ( status === "Approved") {
+                if (status === "Approved") {
                     // First time → Print active
                     printEnable = true;
                     holdEnable = false;
@@ -89,13 +111,13 @@ sap.ui.define([
                     reprintEnable = true;
                     approveEnable = false;
                     holdEnable = false;
-                    rejectEnable = false;                    
+                    rejectEnable = false;
                 }
 
-                // else if(status === "Rejected"){
-                //     approveEnable = false;
-                //     holdEnable = false;
-                // }
+                else if (status === "Rejected") {
+                    approveEnable = false;
+                    holdEnable = false;
+                }
             }
 
             const oVM = this.getView().getModel("ViewModel");
@@ -105,6 +127,9 @@ sap.ui.define([
             oVM.setProperty("/approveEnable", approveEnable);
             oVM.setProperty("/holdEnable", holdEnable);
             oVM.setProperty("/rejectEnable", rejectEnable);
+            oVM.setProperty("/sendEnable", sendEnable);
+            oVM.setProperty("/inquiryEnable", inquiryEnable);
+            oVM.setProperty("/NeftinquiryEnable", NeftinquiryEnable);
 
         },
 
@@ -149,7 +174,6 @@ sap.ui.define([
 
             let doc = "";
             let document = "";
-
 
             for (let i = 0; i < aSelectedItems.length; i++) {
                 doc = aSelectedItems[i].Accountingdocument;
@@ -233,7 +257,6 @@ sap.ui.define([
         },
 
         onReprint: function () {
-
             const oSmartTable = this.byId("stBankPayable");
             const oTable = oSmartTable.getTable();
 
@@ -264,9 +287,12 @@ sap.ui.define([
 
             let doc = "";
             let document = "";
-
+            let comp = "";
+            let company = "";
+ 
             for (let i = 0; i < aSelectedItems.length; i++) {
                 doc = aSelectedItems[i].Accountingdocument;
+                // comp = aSelectedItems[i].Companycode;
 
                 if (aSelectedItems[i].isApproved === '') {
                     sap.m.MessageBox.error(doc + " is not approved");
@@ -286,9 +312,10 @@ sap.ui.define([
                 else {
                     document = document + doc + ",";
                 }
+
             }
 
-            let companyCode = aSelectedItems[0].Companycode;
+            let companyCode = aSelectedItems[0].Companycode
             let fiscalYear = aSelectedItems[0].Fiscalyear;
             let status = aSelectedItems[0].isApproved;
 
@@ -586,6 +613,168 @@ sap.ui.define([
             };
 
             reader.readAsArrayBuffer(this._file);
+        },
+
+        onSend() {
+
+            const oSmartTable = this.byId("stBankPayable");
+            const oTable = oSmartTable.getTable();
+
+            var aSelectedItems = oTable.getSelectedIndices().map(function (iIndex) {
+                var oContext = oTable.getContextByIndex(iIndex);
+                if (!oContext) return null;
+
+                var row = oContext.getObject();
+                return {
+                    Accountingdocument: row.Accountingdocument || "",
+                    Fiscalyear: row.Fiscalyear || "",
+                    Companycode: row.Companycode || "",
+                };
+            }).filter(Boolean);
+
+            if (!aSelectedItems || aSelectedItems.length === 0) {
+                sap.m.MessageToast.show("Please select at least one row to reject.");
+                return;
+            }
+
+            $.ajax({
+                url: "/sap/bc/http/sap/ZHTTP_BANKPAYABLE_SAVE",
+                method: "POST",
+                data: JSON.stringify(aSelectedItems),
+                success: function (response) {
+
+                    if (response && response.length > 0) {
+                        var msg = response.map(function (item) {
+                            return item.Message;
+                        }).join("\n\n");
+                        sap.m.MessageBox.show(msg, {
+
+                            title: "Response from Backend",
+                            actions: [sap.m.MessageBox.Action.OK],
+                            onclose: function () {
+                                oVM.setProperty("/sendEnable", sendEnable);
+                                oSmartTable.rebindTable();
+                            }
+
+                        });
+                    } else {
+                        sap.m.MessageBox.show("No response message received.", {
+                            icon: sap.m.MessageBox.Icon.INFORMATION,
+                            title: "Response from Backend",
+                            actions: [sap.m.MessageBox.Action.OK]
+                        });
+                    }
+                    oSmartTable.rebindTable();
+                },
+
+                error: function (error) {
+                    sap.m.MessageToast.show("Error in reject", error);
+                    oSmartTable.rebindTable();
+                }
+            });
+
+        },
+        onInquiry() {
+            const oSmartTable = this.byId("stBankPayable");
+            const oTable = oSmartTable.getTable();
+
+            var aSelectedItems = oTable.getSelectedIndices().map(function (iIndex) {
+                var oContext = oTable.getContextByIndex(iIndex);
+                if (!oContext) return null;
+
+                var row = oContext.getObject();
+                return {
+                    Accountingdocument: row.Accountingdocument || "",
+                    Fiscalyear: row.Fiscalyear || "",
+                    Companycode: row.Companycode || "",
+                };
+            }).filter(Boolean);
+            if (!aSelectedItems || aSelectedItems.length === 0) {
+                sap.m.MessageToast.show("Please select at least one row to reject.");
+                return;
+            }
+            $.ajax({
+                url: "/sap/bc/http/sap/ZHTTP_TRSXNINQRY",
+                method: "POST",
+                data: JSON.stringify(aSelectedItems),
+                success: function (response) {
+                    if (response && response.length > 0) {
+                        var msg = response.map(function (item) {
+                            return item.Message;
+                        }).join("\n\n");
+                        sap.m.MessageBox.show(msg, {
+
+                            title: "Response from Backend",
+                            actions: [sap.m.MessageBox.Action.OK]
+                        });
+
+                        oSmartTable.rebindTable();
+                    } else {
+                        sap.m.MessageBox.show("No response message received.", {
+                            icon: sap.m.MessageBox.Icon.INFORMATION,
+                            title: "Response from Backend",
+                            actions: [sap.m.MessageBox.Action.OK]
+                        });
+                    }
+                    oSmartTable.rebindTable();
+                }.bind(this),
+
+                error: function (error) {
+                    sap.m.MessageToast.show("Error in reject", error);
+                    oSmartTable.rebindTable();
+                }
+            });
+
+        },
+        onNeftInquiry() {
+            const oSmartTable = this.byId("stBankPayable");
+            const oTable = oSmartTable.getTable();
+
+            var aSelectedItems = oTable.getSelectedIndices().map(function (iIndex) {
+                var oContext = oTable.getContextByIndex(iIndex);
+                if (!oContext) return null;
+
+                var row = oContext.getObject();
+                return {
+                    Accountingdocument: row.Accountingdocument || "",
+                    Fiscalyear: row.Fiscalyear || "",
+                    Companycode: row.Companycode || "",
+                };
+            }).filter(Boolean);
+            if (!aSelectedItems || aSelectedItems.length === 0) {
+                sap.m.MessageToast.show("Please select at least one row to reject.");
+                return;
+            }
+            $.ajax({
+                url: "/sap/bc/http/sap/ZHTTP_NEFTINQUIRY",
+                method: "POST",
+                data: JSON.stringify(aSelectedItems),
+                success: function (response) {
+                    if (response && response.length > 0) {
+                        var msg = response.map(function (item) {
+                            return item.Message;
+                        }).join("\n\n");
+                        sap.m.MessageBox.show(msg, {
+                            title: "Response from Backend",
+                            actions: [sap.m.MessageBox.Action.OK]
+                        });
+                        oSmartTable.rebindTable();
+                    } else {
+                        sap.m.MessageBox.show("No response message received.", {
+                            icon: sap.m.MessageBox.Icon.INFORMATION,
+                            title: "Response from Backend",
+                            actions: [sap.m.MessageBox.Action.OK]
+                        });
+                    }
+                    oSmartTable.rebindTable();
+                }.bind(this),
+
+                error: function (error) {
+                    sap.m.MessageToast.show("Error in reject", error);
+                    oSmartTable.rebindTable();
+                }
+            });
+
         }
     });
-});
+});            

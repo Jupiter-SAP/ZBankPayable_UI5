@@ -64,7 +64,6 @@
             showRowCount="true"
             ignoredFields="__metadata"
         >
-           
             <smartTable:customToolbar>
                 <OverflowToolbar id="_IDGenOverflowToolbar">
                     <ToolbarSpacer id="_IDGenToolbarSpacer" />
@@ -74,6 +73,25 @@
                         press="navigatePage"
                     /> -->
 
+                    <Button
+                        id="_IDGenButton1"
+                        text="Send To Bank"
+                        enabled="{ViewModel>/sendEnable}"
+                        press=".onSend"
+                    />
+
+                    <Button
+                        id="_IDGenButton"
+                        text="Inquiry"
+                        enabled="{ViewModel>/inquiryEnable}"
+                        press=".onInquiry"
+                    />
+                     <Button
+                        id="_IDGenButton12"
+                        text="Neft Status"
+                        enabled="{ViewModel>/NeftinquiryEnable}"
+                        press=".onNeftInquiry"
+                    />
                     <Button
                         id="_IDGenButton31"
                         text="Print"
@@ -106,23 +124,7 @@
                         enabled="{ViewModel>/holdEnable}"
                         press=".onHold"
                     />
-                    <u:FileUploader
-                        id="fileUploader"
-                        name="uploadFile"
-                        width="250px"
-                        placeholder="Choose a file..."
-                        uploadUrl="/sap/opu/odata/sap/ZC_BANKPAYABLE_SRV/FileUploadSet"
-                        change=".onFileChange"
-                        uploadComplete=".onUploadComplete"
-                        fileType="csv,xlsx"
-                        tooltip="Upload supporting document"
-                    />
-                    <Button
-                        id="_IDGenButton"
-                        text="Upload"
-                        icon="sap-icon://upload"
-                        press=".onUploadPress"
-                    />
+
                     <!-- <Button id="_IDGenButton1" text="DELETE" icon="sap-icon://DELETE" press=".ondeletePress" /> -->
                 </OverflowToolbar>
             </smartTable:customToolbar>
@@ -132,7 +134,7 @@
                 selectionMode="MultiToggle"
                 rowSelectionChange="onSelectionChange"
             />
-                <!-- <table:columns>
+            <!-- <table:columns>
                     <table:Column
                         id="colStatus"
                         width="120px"
